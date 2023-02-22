@@ -963,8 +963,8 @@ def model_shap_analysis(features,
             xy = pd.get_dummies(xy,columns=['pred_q'])
 
 
-            #cols_pred = ["true_positive","false_positive","true_negative","false_negative"]
-            cols_pred = []
+            cols_pred = ["true_positive","false_positive","true_negative","false_negative"]
+            #cols_pred = []
             cols_pred = cols_pred + q_labels
             dfs = []
             dict_local_shap_rows = {}
@@ -1337,7 +1337,7 @@ def model_diagnostic(X_train,
         dicc_return['df_gr_false_negatives'] = df_gr_false_negatives
         
     if return_shap:
-        shap_values,X,y,tree_shap_obj,dict_local_shap_rows = model_shap_analysis(features,
+        shap_values,X,y,tree_shap_obj,dict_local_shap_rows,dict_local_shap_rows_qlabels = model_shap_analysis(features,
                          X_train,
                          y_train,
                          X_test,
