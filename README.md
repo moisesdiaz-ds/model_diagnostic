@@ -57,4 +57,244 @@ In order to get the diagnostic you only need to specify the following parameters
 
 # Example
 
+## Model metrics
+    ===== Mostrando Las metricas del modelo
 
+    === Model 1
+    Tipo_metrica          Clasificacion
+    Tipo_modelo                       1
+    Algoritmo             XGBClassifier
+    umbral                          0.5
+    AUC                        0.841667
+    Gini                       0.683333
+    F1_score                   0.761797
+    Accuracy                   0.772881
+    Recall                     0.762738
+    Precision                  0.765568
+    Fecha           2023-02-21 21:35:00
+    Comentario                      NaN
+    Name: Your_user_name-21213528, dtype: object
+
+
+    == Confusion matrix
+    --- Absolute
+    true_positive      85
+    true_negative     158
+    false_positive     17
+    false_negative     35
+    Name: result, dtype: int64
+
+
+    --- Relative
+    true_positive     0.2881
+    true_negative     0.5356
+    false_positive    0.0576
+    false_negative    0.1186
+    Name: result, dtype: float64
+
+
+## Feature importance
+    
+    === Model 1
+    
+![png](example/output_3_9.png)
+
+
+## Model calibration
+
+![png](example/output_3_13.png)
+
+
+## Analyzing features distributions
+
+    
+    ===== Comparing features distribution
+    
+    Pclass
+    Media Data Training: 2.337248322147651 
+     Media Data comparison: 2.308641975308642
+    
+
+
+![png](example/output_3_16.png)
+
+
+    Con Pclass SON IGUALES
+    
+    -----------------------------
+    
+    Age
+    Media Data Training: 29.525983263598327 
+     Media Data comparison: 29.69911764705882
+    
+
+
+![png](example/output_3_18.png)
+
+
+    Con Age SON IGUALES
+    
+    -----------------------------
+    
+    Sex_female
+    Media Data Training: 0.34563758389261745 
+     Media Data comparison: 0.35241301907968575
+
+
+## Global shap values
+
+    
+    ====== Creating shap values
+    
+    Sampling dataset
+    
+    Truncating outliers
+    
+    ====== Creating TREE shap values
+    
+    ======== TREE show_global_explainer
+    
+
+
+![png](example/output_3_24.png)
+
+
+## Partial dependence plots shap values
+
+    
+    ======== show_partial_dependence_plot
+    Sex_female 0.9452049256130524
+    
+
+
+![png](example/output_3_26.png)
+
+
+    Pclass -0.9231761544537408
+    
+
+
+![png](example/output_3_28.png)
+
+
+    Age -0.5607110421420823
+    
+
+
+![png](example/output_3_30.png)
+
+
+    Fare -0.1903939153139222
+    
+
+
+![png](example/output_3_32.png)
+
+
+## Local shap values (Analyzing some cases one by one)
+
+### True positives
+
+    ###  true_positive
+    
+    === true_positive | Registro #:  726
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_34.png)
+
+
+    === true_positive | Registro #:  417
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_36.png)
+
+### False positives
+
+
+    ###  false_positive
+    
+    === false_positive | Registro #:  502
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_38.png)
+
+
+    === false_positive | Registro #:  657
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_40.png)
+
+
+## False negatives
+    ###  false_negative
+    
+    === false_negative | Registro #:  762
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_46.png)
+
+
+    === false_negative | Registro #:  647
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_48.png)
+
+
+## Quantile 25
+    ###  pred_q_(0.0, 0.25]
+    
+    === pred_q_(0.0, 0.25] | Registro #:  130
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_50.png)
+
+
+## Quantile 75
+    ###  pred_q_(0.75, 1.0]
+    
+    === pred_q_(0.75, 1.0] | Registro #:  706
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_58.png)
+
+
+    === pred_q_(0.75, 1.0] | Registro #:  74
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_60.png)
