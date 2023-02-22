@@ -963,8 +963,8 @@ def model_shap_analysis(features,
             xy = pd.get_dummies(xy,columns=['pred_q'])
 
 
-            cols_pred = ["true_positive","false_positive","true_negative","false_negative"]
-            #cols_pred = []
+            #cols_pred = ["true_positive","false_positive","true_negative","false_negative"]
+            cols_pred = []
             cols_pred = cols_pred + q_labels
             dfs = []
             dict_local_shap_rows = {}
@@ -1165,7 +1165,8 @@ def model_diagnostic(X_train,
                     truncate_out = 1,
                     skew_validation_out_shap = 0,
                     use_normal_shap=0,
-                    sample_size_local_shap = 20,
+                    sample_size_local_shap = 5,
+                    specific_rows_local_shap = [],
                     return_model_metrics=1,
                     return_feature_importance_gini=1,
                     return_model_calibration_curve=1,
@@ -1353,7 +1354,8 @@ def model_diagnostic(X_train,
             truncate_out = truncate_out,
             skew_validation_out=skew_validation_out_shap,
             use_normal_shap=use_normal_shap,
-            sample_size = sample_size_local_shap
+            sample_size = sample_size_local_shap,
+            specific_rows_local_shap = specific_rows_local_shap,
                        )
         
         dicc_return['shap_values'] = shap_values
