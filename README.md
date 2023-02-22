@@ -76,6 +76,23 @@ In order to get the diagnostic you only need to specify the following parameters
     Name: Your_user_name-21213528, dtype: object
 
 
+    == Confusion matrix
+    --- Absolute
+    true_positive      85
+    true_negative     158
+    false_positive     17
+    false_negative     35
+    Name: result, dtype: int64
+
+
+    --- Relative
+    true_positive     0.2881
+    true_negative     0.5356
+    false_positive    0.0576
+    false_negative    0.1186
+    Name: result, dtype: float64
+
+
 ## Feature importance
     
     === Model 1
@@ -173,3 +190,111 @@ In order to get the diagnostic you only need to specify the following parameters
 
 ![png](example/output_3_32.png)
 
+
+## Local shap values (Analyzing some cases one by one)
+
+### True positives
+
+    ###  true_positive
+    
+    === true_positive | Registro #:  726
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_34.png)
+
+
+    === true_positive | Registro #:  417
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_36.png)
+
+### False positives
+
+
+    ###  false_positive
+    
+    === false_positive | Registro #:  502
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_38.png)
+
+
+    === false_positive | Registro #:  657
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_40.png)
+
+
+## False negatives
+    ###  false_negative
+    
+    === false_negative | Registro #:  762
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_46.png)
+
+
+    === false_negative | Registro #:  647
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_48.png)
+
+
+## Quantile 25
+    ###  pred_q_(0.0, 0.25]
+    
+    === pred_q_(0.0, 0.25] | Registro #:  130
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_50.png)
+
+
+## Quantile 75
+    ###  pred_q_(0.75, 1.0]
+    
+    === pred_q_(0.75, 1.0] | Registro #:  706
+    Series([], Name: 0, dtype: float64)
+    
+    Prediction:  0.105
+    
+
+
+![png](example/output_3_58.png)
+
+
+    === pred_q_(0.75, 1.0] | Registro #:  74
+    Series([], Name: 1, dtype: float64)
+    
+    Prediction:  0.74
+    
+
+
+![png](example/output_3_60.png)
