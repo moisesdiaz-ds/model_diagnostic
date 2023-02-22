@@ -97,12 +97,12 @@ In order to get the diagnostic you only need to specify the following parameters
     
     === Model 1
     
-![png](example/output_3_9.png)
+![png](example/output_4_9.png)
 
 
 ## Model calibration
 
-![png](example/output_3_13.png)
+![png](example/output_4_13.png)
 
 
 ## Analyzing features distributions
@@ -116,7 +116,7 @@ In order to get the diagnostic you only need to specify the following parameters
     
 
 
-![png](example/output_3_16.png)
+![png](example/output_4_16.png)
 
 
     Con Pclass SON IGUALES
@@ -129,7 +129,7 @@ In order to get the diagnostic you only need to specify the following parameters
     
 
 
-![png](example/output_3_18.png)
+![png](example/output_4_18.png)
 
 
     Con Age SON IGUALES
@@ -156,7 +156,7 @@ In order to get the diagnostic you only need to specify the following parameters
     
 
 
-![png](example/output_3_24.png)
+![png](example/output_4_24.png)
 
 
 ## Partial dependence plots shap values
@@ -167,134 +167,58 @@ In order to get the diagnostic you only need to specify the following parameters
     
 
 
-![png](example/output_3_26.png)
+![png](example/output_4_26.png)
 
 
     Pclass -0.9231761544537408
     
 
 
-![png](example/output_3_28.png)
+![png](example/output_4_28.png)
 
 
     Age -0.5607110421420823
     
 
 
-![png](example/output_3_30.png)
+![png](example/output_4_30.png)
 
 
     Fare -0.1903939153139222
     
 
 
-![png](example/output_3_32.png)
+![png](example/output_4_32.png)
 
 
 ## Local shap values (Analyzing some cases one by one)
 
-### True positives
-
-    ###  true_positive
-    
-    === true_positive | Registro #:  726
+    === Registro #:  4
     Series([], Name: 0, dtype: float64)
     
-    Prediction:  0.105
+    Prediction:  0.084
     
 
 
-![png](example/output_3_34.png)
+![png](example/output_4_34.png)
 
 
-    === true_positive | Registro #:  417
+
+    === Registro #:  5
     Series([], Name: 1, dtype: float64)
     
-    Prediction:  0.74
+    Prediction:  0.077
     
 
 
-![png](example/output_3_36.png)
-
-### False positives
+![png](example/output_4_36.png)
 
 
-    ###  false_positive
+    === Registro #:  0
+    Series([], Name: 2, dtype: float64)
     
-    === false_positive | Registro #:  502
-    Series([], Name: 0, dtype: float64)
-    
-    Prediction:  0.105
+    Prediction:  0.734
     
 
 
-![png](example/output_3_38.png)
-
-
-    === false_positive | Registro #:  657
-    Series([], Name: 1, dtype: float64)
-    
-    Prediction:  0.74
-    
-
-
-![png](example/output_3_40.png)
-
-
-## False negatives
-    ###  false_negative
-    
-    === false_negative | Registro #:  762
-    Series([], Name: 0, dtype: float64)
-    
-    Prediction:  0.105
-    
-
-
-![png](example/output_3_46.png)
-
-
-    === false_negative | Registro #:  647
-    Series([], Name: 1, dtype: float64)
-    
-    Prediction:  0.74
-    
-
-
-![png](example/output_3_48.png)
-
-
-## Quantile 25
-    ###  pred_q_(0.0, 0.25]
-    
-    === pred_q_(0.0, 0.25] | Registro #:  130
-    Series([], Name: 0, dtype: float64)
-    
-    Prediction:  0.105
-    
-
-
-![png](example/output_3_50.png)
-
-
-## Quantile 75
-    ###  pred_q_(0.75, 1.0]
-    
-    === pred_q_(0.75, 1.0] | Registro #:  706
-    Series([], Name: 0, dtype: float64)
-    
-    Prediction:  0.105
-    
-
-
-![png](example/output_3_58.png)
-
-
-    === pred_q_(0.75, 1.0] | Registro #:  74
-    Series([], Name: 1, dtype: float64)
-    
-    Prediction:  0.74
-    
-
-
-![png](example/output_3_60.png)
+![png](example/output_4_38.png)
