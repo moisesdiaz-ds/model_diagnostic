@@ -1,0 +1,2 @@
+Model,Algoritmo,Tipo_modelo,mean_xtrain,mean_ytrain,mean_xtest,mean_ytest,Fecha,Comentario
+Your_user_name-20221502,SVC,1,62.381663113006404,0.0914179104477612,63.14123376623377,0.06439393939393939,2023-02-20 22:15:00,

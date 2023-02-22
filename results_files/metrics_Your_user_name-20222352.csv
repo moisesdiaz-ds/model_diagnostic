@@ -1,0 +1,2 @@
+Model,Tipo_metrica,Tipo_modelo,Algoritmo,umbral,AUC,Gini,F1_score,Accuracy,Recall,Precision,Fecha,Comentario
+Your_user_name-20222352,Clasificacion,1,AdaBoostClassifier,0.5,0.9048571428571428,0.8097142857142856,0.7512896665045521,0.9544267053701017,0.7188775510204082,0.8423058069381598,2023-02-20 22:23:00,

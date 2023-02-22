@@ -1,0 +1,2 @@
+Model,objective,use_label_encoder,base_score,booster,colsample_bylevel,colsample_bynode,colsample_bytree,gamma,gpu_id,importance_type,interaction_constraints,learning_rate,max_delta_step,max_depth,min_child_weight,missing,monotone_constraints,n_estimators,n_jobs,num_parallel_tree,random_state,reg_alpha,reg_lambda,scale_pos_weight,subsample,tree_method,validate_parameters,verbosity,Algoritmo,Tipo_modelo
+Your_user_name-21213528,binary:logistic,True,0.5,gbtree,1,1,1,0,-1,gain,,0.300000012,0,3,1,,(),100,8,1,0,0,1,1,1,exact,1,,XGBClassifier,1

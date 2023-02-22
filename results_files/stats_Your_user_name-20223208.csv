@@ -1,0 +1,6 @@
+Model,Algoritmo,Tipo_modelo,mean_xtrain,mean_ytrain,mean_xtest,mean_ytest,Fecha,Comentario
+Your_user_name-20223208,"XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=1,
+              colsample_bynode=1, colsample_bytree=1, gamma=0, gpu_id=-1,
+              importance_type='gain', interaction_constraints='',
+              learning_rate=0.300000012, max_delta_step=0, max_depth=10,
+              min_child_weight=1, missing=nan, monotone_constraints='",1,62.381663113006404,0.0914179104477612,63.14123376623377,0.06439393939393939,2023-02-20 22:32:00,

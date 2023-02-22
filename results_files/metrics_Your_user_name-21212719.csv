@@ -1,0 +1,2 @@
+Model,Tipo_metrica,Tipo_modelo,Algoritmo,umbral,AUC,Gini,F1_score,Accuracy,Recall,Precision,Fecha,Comentario
+Your_user_name-21212719,Clasificacion,1,XGBClassifier,0.5,0.8278571428571428,0.6557142857142857,0.7591119156252265,0.7694915254237288,0.7611904761904762,0.7635759727461033,2023-02-21 21:27:00,

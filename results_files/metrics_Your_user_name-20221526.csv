@@ -1,0 +1,2 @@
+Model,Tipo_metrica,Tipo_modelo,Algoritmo,umbral,AUC,Gini,F1_score,Accuracy,Recall,Precision,Fecha,Comentario
+Your_user_name-20221526,Clasificacion,1,SVC,0.5,0.9408979591836735,0.8817959183673469,0.8094613351720191,0.9544267053701017,0.8128367346938775,0.8412860144057623,2023-02-20 22:15:00,

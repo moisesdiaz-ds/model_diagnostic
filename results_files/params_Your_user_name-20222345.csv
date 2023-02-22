@@ -1,0 +1,2 @@
+Model,algorithm,base_estimator,estimator,learning_rate,n_estimators,random_state,Algoritmo,Tipo_modelo
+Your_user_name-20222345,SAMME.R,deprecated,,1.0,52,1,AdaBoostClassifier,1
