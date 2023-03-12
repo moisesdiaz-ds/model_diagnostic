@@ -1,0 +1,2 @@
+Model,Algoritmo,Tipo_modelo,mean_xtrain,mean_ytrain,mean_xtest,mean_ytest,Fecha,Comentario
+Your_user_name-21214715,"SVC(C=10, probability=True)",1,14.568976719798648,0.3724832214765101,14.862439661016946,0.4067796610169492,2023-02-21 21:47:00,

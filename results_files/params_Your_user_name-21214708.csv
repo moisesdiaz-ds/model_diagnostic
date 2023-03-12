@@ -1,0 +1,2 @@
+Model,bootstrap,ccp_alpha,class_weight,criterion,max_depth,max_features,max_leaf_nodes,max_samples,min_impurity_decrease,min_samples_leaf,min_samples_split,min_weight_fraction_leaf,n_estimators,n_jobs,oob_score,random_state,verbose,warm_start,Algoritmo,Tipo_modelo
+Your_user_name-21214708,True,0.0,,gini,30,sqrt,,,0.0,1,2,0.0,70,,False,10,0,False,RandomForestClassifier,1

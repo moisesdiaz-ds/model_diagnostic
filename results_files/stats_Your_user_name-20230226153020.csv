@@ -1,0 +1,9 @@
+Model,Algoritmo,Tipo_modelo,mean_xtrain,mean_ytrain,mean_xtest,mean_ytest,split_random_state,Fecha,Comentario
+Your_user_name-20230226153020,"XGBClassifier(base_score=0.5, booster='gbtree', callbacks=None,
+              colsample_bylevel=1, colsample_bynode=1, colsample_bytree=1,
+              early_stopping_rounds=None, enable_categorical=False,
+              eval_metric=None, gamma=0, gpu_id=-1, grow_policy='depthwise',
+              importance_type=None, interaction_constraints='',
+              learning_rate=0.300000012, max_bin=256, max_cat_to_onehot=4,
+              max_delta_step=0, max_depth=10, max_leaves=0, min_child_weight=1,
+              missing=nan, monotone_constraints='",1,14.568976719798648,0.3724832214765101,14.862439661016946,0.4067796610169492,1,2023-02-26 15:30:00,

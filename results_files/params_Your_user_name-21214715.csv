@@ -1,0 +1,2 @@
+Model,C,break_ties,cache_size,class_weight,coef0,decision_function_shape,degree,gamma,kernel,max_iter,probability,random_state,shrinking,tol,verbose,Algoritmo,Tipo_modelo
+Your_user_name-21214715,10,False,200,,0.0,ovr,3,scale,rbf,-1,True,,True,0.001,False,SVC,1
