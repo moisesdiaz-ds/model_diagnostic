@@ -1,3 +1,11 @@
+from sklearn.calibration import calibration_curve
+import track_model_utils
+import miscellaneous_functions as mf
+import sys
+import shap
+from tqdm.notebook import trange, tqdm
+from upsetplot import plot as plot_upset
+from scipy.stats import ks_2samp
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,56 +25,50 @@ import warnings
 import datetime
 
 warnings.filterwarnings("ignore")
-from scipy.stats import ks_2samp
-from upsetplot import plot as plot_upset
-from tqdm.notebook import trange, tqdm
-import shap
 
 
-import sys
-
-import miscellaneous_functions as mf
-
-import track_model_utils
-
-from sklearn.calibration import calibration_curve
-    
-
-
-def get_confusion_matrix(umbral_elegido,X_test,y_test,features,chosen_model,target):
+def get_confusion_matrix(umbral_elegido, X_test, y_test, features, chosen_model, target):
     df = pd.DataFrame()
     df[target] = y_test[target]
-    df['pred_proba'] = chosen_model.predict_proba(X_test[features])[:,1]
-    df['pred'] = df['pred_proba']>=umbral_elegido
+    df['pred_proba'] = chosen_model.predict_proba(X_test[features])[:, 1]
+    df['pred'] = df['pred_proba'] >= umbral_elegido
 
     df['result'] = ""
-    df['result'] = np.where((df[target]==1)&(df['pred']==1),'true_positive',df['result'])
-    df['result'] = np.where((df[target]==0)&(df['pred']==1),'false_positive',df['result'])
-    df['result'] = np.where((df[target]==0)&(df['pred']==0),'true_negative',df['result'])
-    df['result'] = np.where((df[target]==1)&(df['pred']==0),'false_negative',df['result'])
-    
+    df['result'] = np.where((df[target] == 1) & (
+        df['pred'] == 1), 'true_positive', df['result'])
+    df['result'] = np.where((df[target] == 0) & (
+        df['pred'] == 1), 'false_positive', df['result'])
+    df['result'] = np.where((df[target] == 0) & (
+        df['pred'] == 0), 'true_negative', df['result'])
+    df['result'] = np.where((df[target] == 1) & (
+        df['pred'] == 0), 'false_negative', df['result'])
+
     print('--- Absoluto')
-    display(np.round(df['result'].value_counts(normalize=False).sort_index(ascending=False),4))
+    display(np.round(df['result'].value_counts(
+        normalize=False).sort_index(ascending=False), 4))
     print()
     print('--- Relativo')
-    display(np.round(df['result'].value_counts(normalize=True).sort_index(ascending=False),4))
+    display(np.round(df['result'].value_counts(
+        normalize=True).sort_index(ascending=False), 4))
     print()
-    
-def model_metrics(df_results,X_test,y_test,features,chosen_model,features2,chosen_model2,target,model_id,model_id2,model_name,model_name2,umbral_elegido,umbral_elegido2):
-    # Tomamos las metricas que se guardaron al momento de que se 
+
+
+def model_metrics(df_results, X_test, y_test, features, chosen_model, features2, chosen_model2, target, model_id, model_id2, model_name, model_name2, umbral_elegido, umbral_elegido2):
+    # Tomamos las metricas que se guardaron al momento de que se
     # guardo el modelo
     print(f'=== {model_name}')
     print(df_results['metrics'].set_index('Model').loc[model_id])
     print()
     print(f'== Confusion matrix')
-    get_confusion_matrix(umbral_elegido,X_test,y_test,features,chosen_model,target)
+    get_confusion_matrix(umbral_elegido, X_test, y_test,
+                         features, chosen_model, target)
 
     print(f'=== {model_name2}')
     print(df_results['metrics'].set_index('Model').loc[model_id2])
     print()
     print(f'== Confusion matrix')
-    get_confusion_matrix(umbral_elegido2,X_test,y_test,features2,chosen_model2,target)
-    
+    get_confusion_matrix(umbral_elegido2, X_test, y_test,
+                         features2, chosen_model2, target)
 
 
 def model_feature_importance_gini_index(features,
@@ -75,72 +77,70 @@ def model_feature_importance_gini_index(features,
                                         chosen_model2,
                                         model_name,
                                         model_name2,
-                                       limit_imp):
-    
-    
+                                        limit_imp):
+
     try:
 
         if 'xgb' in str(chosen_model).split('(')[0].lower():
             dict_imp = chosen_model.get_booster().get_score(importance_type='gain')
-            dict_imp = { c:[dict_imp[c]] for c in dict_imp.keys()}
-            df_feature_importance = pd.DataFrame(dict_imp).T.sort_values(0,ascending=False).head(limit_imp)
+            dict_imp = {c: [dict_imp[c]] for c in dict_imp.keys()}
+            df_feature_importance = pd.DataFrame(dict_imp).T.sort_values(
+                0, ascending=False).head(limit_imp)
         else:
             df_feature_importance = pd.DataFrame([features,
-                 chosen_model.feature_importances_]).T.set_index(0).sort_values(1,ascending=False).head(limit_imp)
+                                                  chosen_model.feature_importances_]).T.set_index(0).sort_values(1, ascending=False).head(limit_imp)
 
         if 'xgb' in str(chosen_model2).split('(')[0].lower():
             dict_imp2 = chosen_model2.get_booster().get_score(importance_type='gain')
-            dict_imp2 = { c:[dict_imp2[c]] for c in dict_imp2.keys()}
-            df_feature_importance2 = pd.DataFrame(dict_imp2).T.sort_values(0,ascending=False).head(limit_imp)
+            dict_imp2 = {c: [dict_imp2[c]] for c in dict_imp2.keys()}
+            df_feature_importance2 = pd.DataFrame(dict_imp2).T.sort_values(
+                0, ascending=False).head(limit_imp)
         else:
             df_feature_importance2 = pd.DataFrame([features,
-                 chosen_model2.feature_importances_]).T.set_index(0).sort_values(1,ascending=False).head(limit_imp)
+                                                   chosen_model2.feature_importances_]).T.set_index(0).sort_values(1, ascending=False).head(limit_imp)
 
-        
         print(f'=== {model_name}')
-        df_feature_importance.plot(kind='barh',figsize=(5,5))
+        df_feature_importance.plot(kind='barh', figsize=(5, 5))
         plt.show()
 
         print()
 
         print(f'=== {model_name2}')
-        df_feature_importance2.plot(kind='barh',figsize=(5,5))
+        df_feature_importance2.plot(kind='barh', figsize=(5, 5))
         plt.show()
-        
+
     except Exception as e:
-        print("ERROR ",e)
+        print("ERROR ", e)
         pass
 
-    
-    
-def model_calibration_curve(X_test,y_test,features,chosen_model,model_name):
-    
 
-    probs = chosen_model.predict_proba(X_test[features])[:,1]
+def model_calibration_curve(X_test, y_test, features, chosen_model, model_name):
+
+    probs = chosen_model.predict_proba(X_test[features])[:, 1]
 
     # reliability diagram
     x, y = calibration_curve(y_test, probs, n_bins=10)
 
     # Plot perfectly calibrated
-    plt.plot([0, 1], [0, 1], linestyle = '--', label = 'Ideally Calibrated')
+    plt.plot([0, 1], [0, 1], linestyle='--', label='Ideally Calibrated')
 
     # Plot model's calibration curve
-    plt.plot(y, x, marker = '.', label = model_name)
+    plt.plot(y, x, marker='.', label=model_name)
 
-    leg = plt.legend(loc = 'upper left')
+    leg = plt.legend(loc='upper left')
     plt.xlabel('Average Predicted Probability in each bin')
     plt.ylabel('Ratio of positives')
     plt.show()
-    
+
 
 def model_compare_data_dist(features,
                             X_train,
                             data_for_comparison):
-    
+
     # El 1-p-value maximo para considerar iguales a 2 distribuciones
     # Usando la prueba kolmogorov
     prob_igualdad_compare_dist = 0.85
-    
+
     # Iteramos en cada feature
     for c in features:
         print(c)
@@ -153,33 +153,34 @@ def model_compare_data_dist(features,
             for n in range(1):
                 # Le eliminamos los outliers de todos los valores que
                 # sean 4.5 veces mayores o menores al rango intercuartilico
-                df_training[col] = mf.get_col_sin_out(df_training[col],metodo=2,multiplo_IQR=4.5)
-                df_pilot_old[col] = mf.get_col_sin_out(df_pilot_old[col],metodo=2,multiplo_IQR=4.5)
+                df_training[col] = mf.get_col_sin_out(
+                    df_training[col], metodo=2, multiplo_IQR=4.5)
+                df_pilot_old[col] = mf.get_col_sin_out(
+                    df_pilot_old[col], metodo=2, multiplo_IQR=4.5)
 
-            plt.subplot(1,2,2)
+            plt.subplot(1, 2, 2)
 
             plt.subplot(121)
-            print(f'Media Data Training: {df_training[col].mean()}',"\n",f'Media Data comparison: {df_pilot_old[col].mean()}')
-            df_training[col].hist(figsize=(6,2))
-
+            print(f'Media Data Training: {df_training[col].mean()}',
+                  "\n", f'Media Data comparison: {df_pilot_old[col].mean()}')
+            df_training[col].hist(figsize=(6, 2))
 
             plt.subplot(122)
-            df_pilot_old[col].hist(figsize=(6,2))
-            
+            df_pilot_old[col].hist(figsize=(6, 2))
+
             plt.subplots_adjust(wspace=0.4)
             plt.show()
 
-
-            ks = np.round(ks_2samp(df_training[col], df_pilot_old[col])[1],15)
-            if ks<=prob_igualdad_compare_dist:
-                print(f'Con {col}, Hay un {ks} de proababilidades de que sean iguales')
+            ks = np.round(ks_2samp(df_training[col], df_pilot_old[col])[1], 15)
+            if ks <= prob_igualdad_compare_dist:
+                print(
+                    f'Con {col}, Hay un {ks} de proababilidades de que sean iguales')
             else:
                 print(f'Con {col} SON IGUALES')
 
         except Exception as e:
-            print(f"ERROR CON {col}",e)
+            print(f"ERROR CON {col}", e)
         print("\n-----------------------------\n")
-        
 
 
 def model_performance_by_segment(
@@ -373,7 +374,6 @@ def model_performance_by_segment(
         print()
 
     return df_features, dfs
-
 
 
 def model_profiling_weight_of_evidence(
@@ -652,36 +652,31 @@ def model_profiling_false_negatives(
     return tab_final, df_positives, df_diff_dist_gr, df_gr_false_negatives
 
 
-
-
 def model_shap_analysis(features,
-                         X_train,
-                         y_train,
-                         X_test,
-                         y_test,
-                         chosen_model,
-                         target,
+                        X_train,
+                        y_train,
+                        X_test,
+                        y_test,
+                        chosen_model,
+                        target,
                         umbral,
-                        porcentaje_df_sample = 0.5,
-            existing_shap_values = None,
-            existing_df_shap_values = None,
-            show_global_explainer = 1,
-            show_partial_dependence_plot = 1,
-            show_local_explainer = 1,
-            truncate_out = 1,
-            skew_validation_out = 0,
-            use_normal_shap = 0,
-            sample_size = 5,
-            specific_rows_local_shap = [],
-            ruta_save_img_shaplocal = '',
-            show_plot = 1
-                ):
-    
+                        porcentaje_df_sample=0.5,
+                        existing_shap_values=None,
+                        existing_df_shap_values=None,
+                        show_global_explainer=1,
+                        show_partial_dependence_plot=1,
+                        show_local_explainer=1,
+                        truncate_out=1,
+                        skew_validation_out=0,
+                        use_normal_shap=0,
+                        sample_size=5,
+                        specific_rows_local_shap=[],
+                        ruta_save_img_shaplocal='',
+                        show_plot=1
+                        ):
 
-    
-    
-    ### Functions 
-    def get_shap_local(row,row_name,X,tree_shap_obj,X_ratio_info,features,shap_values):
+    # Functions
+    def get_shap_local(row, row_name, X, tree_shap_obj, X_ratio_info, features, shap_values):
         """
         Show shap values by an observation using a waterfall plot
 
@@ -691,74 +686,77 @@ def model_shap_analysis(features,
         X_ratio_info: Dataframe about the numerator and denominator of every ratio variable
         """
 
-        shap_pred = 0 #Prediction
-        shap_pred += tree_shap_obj.expected_value #Intercept
-        cols_shap_local = [] # Where to save the row data
-        vals_shap_local = [] # Where to save the row shap data
-        dict_features = {} # Where to save col and shap data by column
-        for i,c in enumerate(features):
+        shap_pred = 0  # Prediction
+        shap_pred += tree_shap_obj.expected_value  # Intercept
+        cols_shap_local = []  # Where to save the row data
+        vals_shap_local = []  # Where to save the row shap data
+        dict_features = {}  # Where to save col and shap data by column
+        for i, c in enumerate(features):
 
-            sh_val = shap_values[row,i]
-            data_val = X.iloc[row,i]
-            #print(c,sh_val)
-            dict_features[c] = [sh_val,data_val]
-
+            sh_val = shap_values[row, i]
+            data_val = X.iloc[row, i]
+            # print(c,sh_val)
+            dict_features[c] = [sh_val, data_val]
 
         df_feats = pd.DataFrame(dict_features)
 
         df_feats = df_feats.T.reset_index()
-        df_feats.columns = ['Feature','shap_val','data_val']
-        df_feats['shap_val_abs'] =  np.abs(df_feats.shap_val)
-        df_feats = df_feats.sort_values('shap_val_abs',ascending=True)
-
+        df_feats.columns = ['Feature', 'shap_val', 'data_val']
+        df_feats['shap_val_abs'] = np.abs(df_feats.shap_val)
+        df_feats = df_feats.sort_values('shap_val_abs', ascending=True)
 
         # In order to also have the intercept (expected/prior) prediction
-        df_expected = pd.DataFrame({'expected_values':[tree_shap_obj.expected_value,0,tree_shap_obj.expected_value]}).T.reset_index()
+        df_expected = pd.DataFrame({'expected_values': [
+                                   tree_shap_obj.expected_value, 0, tree_shap_obj.expected_value]}).T.reset_index()
         df_expected.columns = df_feats.columns
 
         # In order to create some blank spaces on the plot
-        df_dummy = pd.DataFrame({'':[0,0,0,0]}).T
+        df_dummy = pd.DataFrame({'': [0, 0, 0, 0]}).T
         df_dummy.columns = df_feats.columns
         df_dummy = pd.concat([df_dummy]*3)
 
-        df_feats = pd.concat([df_expected,df_feats,df_dummy])
-
-
+        df_feats = pd.concat([df_expected, df_feats, df_dummy])
 
         def waterfall(series):
-            pred = np.round(series.sum(),3) # The prediction its the sum of all shap data
+            # The prediction its the sum of all shap data
+            pred = np.round(series.sum(), 3)
             if show_plot:
-                print('Prediction: ',pred)
-
+                print('Prediction: ', pred)
 
             # Code to artificially create an waterfall plot
-            df = pd.DataFrame({'pos':np.maximum(series,0),'neg':np.minimum(series,0)})
+            df = pd.DataFrame({'pos': np.maximum(series, 0),
+                              'neg': np.minimum(series, 0)})
             blank = series.cumsum().shift(1).fillna(0)
-            df.plot(kind='barh', stacked=True, left=blank, color=['b','r'],figsize=(9,5))
+            df.plot(kind='barh', stacked=True, left=blank,
+                    color=['b', 'r'], figsize=(9, 5))
             step = blank.reset_index(drop=True).repeat(3).shift(-1)
             step[1::3] = np.nan
-            plt.plot(step.values, step.index,'k')
-            plt.grid(True,alpha=0.4)
+            plt.plot(step.values, step.index, 'k')
+            plt.grid(True, alpha=0.4)
 
-            # Code to add some padding on the plot relative to the waterfall shape 
+            # Code to add some padding on the plot relative to the waterfall shape
             last_x = max(series.cumsum())
             padding = 0.07 - np.abs((last_x-pred))
-            if padding<0:
-                padding=0
-            xvals = np.round(np.linspace(0,last_x+padding,round(len(series)/1.5)),2)
+            if padding < 0:
+                padding = 0
+            xvals = np.round(np.linspace(
+                0, last_x+padding, round(len(series)/1.5)), 2)
             plt.xticks(xvals)
 
-            plt.annotate(pred, (pred,len(series)-2.5),fontsize=13)
+            plt.annotate(pred, (pred, len(series)-2.5), fontsize=13)
             plt.legend(loc='center left')
-            if (ruta_save_img_shaplocal!="") and (ruta_save_img_shaplocal!=None):
-                plt.savefig(f'{ruta_save_img_shaplocal}/{row_name}.jpg', bbox_inches='tight')
+            if (ruta_save_img_shaplocal != "") and (ruta_save_img_shaplocal != None):
+                plt.savefig(
+                    f'{ruta_save_img_shaplocal}/{row_name}.jpg', bbox_inches='tight')
             if show_plot:
                 plt.show()
 
         # Code to organize row data
         series = df_feats.set_index('Feature').shap_val
-        series.index = [f"{str(np.round(v,2))} = {i}" for i,v in zip(df_feats.Feature,df_feats.data_val)]
-        series.index = [i.replace("0.0 = expected_values",'expected_probabilty').replace("0.0 = 0",'') for i in list(series.index)]
+        series.index = [f"{str(np.round(v,2))} = {i}" for i, v in zip(
+            df_feats.Feature, df_feats.data_val)]
+        series.index = [i.replace("0.0 = expected_values", 'expected_probabilty').replace(
+            "0.0 = 0", '') for i in list(series.index)]
 
         # Show the data info about the columns that create every ratio_variable
         if show_plot:
@@ -769,29 +767,28 @@ def model_shap_analysis(features,
 
         return series
 
-
-
-
-
-    ### Code starts
-    if existing_shap_values==False or existing_shap_values==None:
+    # Code starts
+    if existing_shap_values == False or existing_shap_values == None:
 
         print('\n====== Creating shap values')
-        train = pd.concat([X_train,y_train],axis=1)
-        test = pd.concat([X_test,y_test],axis=1)
-        df = pd.concat([train,test])
+        train = pd.concat([X_train, y_train], axis=1)
+        test = pd.concat([X_test, y_test], axis=1)
+        df = pd.concat([train, test])
 
-        if porcentaje_df_sample<1:
+        if porcentaje_df_sample < 1:
             print('\nSampling dataset')
-            df_sample = mf.extract_mini_dataset(df[features+[target]],porcentaje=porcentaje_df_sample,significancia=0.10,print_it=0)
+            df_sample = mf.extract_mini_dataset(
+                df[features+[target]], porcentaje=porcentaje_df_sample, significancia=0.10, print_it=0)
 
-            X,y,df = df_sample[features],df_sample[target].astype(bool),df_sample.merge(df)
+            X, y, df = df_sample[features], df_sample[target].astype(
+                bool), df_sample.merge(df)
         else:
-            X,y,df = df[features],df[target].astype(bool),df
+            X, y, df = df[features], df[target].astype(bool), df
 
-        ## Obtener las columnas que son de ratio del modelo
+        # Obtener las columnas que son de ratio del modelo
         ratio_cols = [c for c in X.columns if c.startswith('ratio_')]
-        ratio_cols_taken = [c for c in X_train.columns if any([c in c2 for c2 in ratio_cols])]
+        ratio_cols_taken = [c for c in X_train.columns if any(
+            [c in c2 for c2 in ratio_cols])]
         ratio_cols_taken = [c for c in ratio_cols_taken if 'ratio_' not in c]
         X_ratio_info = df[ratio_cols_taken]
 
@@ -804,32 +801,31 @@ def model_shap_analysis(features,
             print('\nTruncating outliers')
 
             for c in X.columns:
-                X2 = mf.truncate_outliers(X2,c,std_n=4,min_notna=0.2,drop_na=1,skew_validation=skew_validation_out,skew_limit=3)
+                X2 = mf.truncate_outliers(
+                    X2, c, std_n=4, min_notna=0.2, drop_na=1, skew_validation=skew_validation_out, skew_limit=3)
 
         X = X2
 
+        # display(X.isnull().sum())
 
-        #display(X.isnull().sum())
-
-
-        #########  Check if tree_based model
-        if  (
+        # Check if tree_based model
+        if (
             ((("max_depth" in dir(chosen_model)) and ('max_leaf_nodes' in dir(chosen_model))) or
              (("max_depth" in dir(chosen_model)) and ('get_booster' in dir(chosen_model))) or
-             (("max_depth" in dir(chosen_model)) and ('max_leaves' in dir(chosen_model)))) 
-        and (use_normal_shap==0)
+             (("max_depth" in dir(chosen_model)) and ('max_leaves' in dir(chosen_model))))
+            and (use_normal_shap == 0)
         ):
             print('\n====== Creating TREE shap values')
-            tree_shap_obj = shap.TreeExplainer(chosen_model,X,
-                                model_output='probability',
-                                feature_pertubation='tree_path_dependent')
+            tree_shap_obj = shap.TreeExplainer(chosen_model, X,
+                                               model_output='probability',
+                                               feature_pertubation='tree_path_dependent')
 
             shap_values = tree_shap_obj.shap_values(X)
 
-            shap_values = shap.Explanation(values=shap_values, data=np.array(X), feature_names=list(X_train.columns), base_values=np.array([tree_shap_obj.expected_value]*len(X)))
+            shap_values = shap.Explanation(values=shap_values, data=np.array(X), feature_names=list(
+                X_train.columns), base_values=np.array([tree_shap_obj.expected_value]*len(X)))
 
-
-            try: # Cuando es randomforest esto es una lista
+            try:  # Cuando es randomforest esto es una lista
                 tree_shap_obj.expected_value = tree_shap_obj.expected_value[1]
             except:
                 pass
@@ -843,20 +839,22 @@ def model_shap_analysis(features,
             # now we explicitly use a Partition masker that uses the clustering we just computed
             masker = shap.maskers.Partition(X, clustering=clustering)
 
-
             # build an Exact explainer and explain the model predictions on the given dataset
-            explainer = shap.explainers.Exact(chosen_model.predict_proba, masker)
+            explainer = shap.explainers.Exact(
+                chosen_model.predict_proba, masker)
             shap_values = explainer(X)
 
             # get just the explanations for the positive class
-            shap_values = shap_values[...,1]
+            shap_values = shap_values[..., 1]
 
-            ### Guardamos
+            # Guardamos
             now = datetime.datetime.now()
             today = f"{now.day}-{now.month}-{now.year}"
 
-            pickle.dump(X, open(f"data/df_shap_values_beha_{today}.dmp", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-            pickle.dump(shap_values, open(f"data/shap_values_beha_{today}.dmp", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(X, open(
+                f"data/df_shap_values_beha_{today}.dmp", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(shap_values, open(
+                f"data/shap_values_beha_{today}.dmp", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
     else:
 
@@ -866,18 +864,16 @@ def model_shap_analysis(features,
 
         X = pd.read_pickle(existing_df_shap_values)
 
-
-    #Validacion de tipo de shap_values #Cuando es randomforest esto es una lista
-    if isinstance(shap_values,list):
+    # Validacion de tipo de shap_values #Cuando es randomforest esto es una lista
+    if isinstance(shap_values, list):
         shap_values = shap_values[1]
 
-
-    #########  Check if tree_based model
-    if  (
+    # Check if tree_based model
+    if (
         ((("max_depth" in dir(chosen_model)) and ('max_leaf_nodes' in dir(chosen_model))) or
          (("max_depth" in dir(chosen_model)) and ('get_booster' in dir(chosen_model))) or
-         (("max_depth" in dir(chosen_model)) and ('max_leaves' in dir(chosen_model)))) 
-    and (use_normal_shap==0)
+         (("max_depth" in dir(chosen_model)) and ('max_leaves' in dir(chosen_model))))
+        and (use_normal_shap == 0)
     ):
 
         if show_global_explainer:
@@ -887,81 +883,90 @@ def model_shap_analysis(features,
 
         if show_partial_dependence_plot:
             print('\n======== show_partial_dependence_plot')
-            ## Creamos un diccionario para ordenar todo
+            # Creamos un diccionario para ordenar todo
             dicc_order_feat = {}
-            for i,v in enumerate(shap_values.values[1]):
-                #print(list(X.columns)[i],i)
+            for i, v in enumerate(shap_values.values[1]):
+                # print(list(X.columns)[i],i)
                 dicc_order_feat[list(X.columns)[i]] = i
 
-            ## Ordenamos por importancia
+            # Ordenamos por importancia
             importances = chosen_model.feature_importances_
             sorted_indices = np.argsort(importances)[::-1]
             cant_features_show = 50
             feats_ordered = X.columns[sorted_indices[:cant_features_show]]
 
-            ## Ploteamos
+            # Ploteamos
             cols_non_corr = []
             linealidad_dicc = {}
-            for i,f in enumerate(feats_ordered):
+            for i, f in enumerate(feats_ordered):
 
                 df_shap_corr = pd.DataFrame()
-                df_shap_corr['shap_values'] = shap_values.values[:,dicc_order_feat[f]]
-                df_shap_corr['shap_data'] = shap_values.data[:,dicc_order_feat[f]]
+                df_shap_corr['shap_values'] = shap_values.values[:,
+                                                                 dicc_order_feat[f]]
+                df_shap_corr['shap_data'] = shap_values.data[:,
+                                                             dicc_order_feat[f]]
 
-                if (len(df_shap_corr.corr().stack())>0) & (df_shap_corr.shap_values.nunique()>1):
-                    linealidad = df_shap_corr.corr().iloc[:,0].fillna(0)[df_shap_corr.corr().iloc[:,0].fillna(0)<1].values[0]
+                if (len(df_shap_corr.corr().stack()) > 0) & (df_shap_corr.shap_values.nunique() > 1):
+                    linealidad = df_shap_corr.corr().iloc[:, 0].fillna(
+                        0)[df_shap_corr.corr().iloc[:, 0].fillna(0) < 1].values[0]
                 else:
                     linealidad = 0
 
-                print(f,linealidad)
-                shap.plots.scatter(shap_values[:,dicc_order_feat[f]])
+                print(f, linealidad)
+                shap.plots.scatter(shap_values[:, dicc_order_feat[f]])
                 plt.show()
 
-                if linealidad>0:
+                if linealidad > 0:
                     linealidad_dicc[f] = 1
                 else:
                     linealidad_dicc[f] = -1
 
-                if np.abs(linealidad)<0.65:
+                if np.abs(linealidad) < 0.65:
                     cols_non_corr.append(f)
 
-
         if show_local_explainer:
-            #display(X.isnull().sum())
+            # display(X.isnull().sum())
             shap_values = shap_values.values
             print('\n======== show_local_explainer_plot by type of prediction')
 
-            if len(specific_rows_local_shap)>0:
-                ## Esta tecnica es para obtener la posicion de cada uno de los indices que se le pasaron al df
+            if len(specific_rows_local_shap) > 0:
+                # Esta tecnica es para obtener la posicion de cada uno de los indices que se le pasaron al df
                 X_reseted = X.copy()
                 X_reseted.index.name = "any_name_index"
                 X_reseted = X_reseted.reset_index(drop=False)
-                specific_rows_local_shap_iloc = list(X_reseted[X_reseted['any_name_index'].isin(specific_rows_local_shap)].index)
+                specific_rows_local_shap_iloc = list(
+                    X_reseted[X_reseted['any_name_index'].isin(specific_rows_local_shap)].index)
                 del X_reseted
             else:
                 specific_rows_local_shap_iloc = []
 
-            ## Solo eliminara el index si no son coherentes
+            # Solo eliminara el index si no son coherentes
             try:
-                xy = pd.concat([X,y],axis=1)
+                xy = pd.concat([X, y], axis=1)
             except:
                 print('index deleted')
-                xy = pd.concat([X.reset_index(drop=True),y.reset_index(drop=True)],axis=1)
+                xy = pd.concat([X.reset_index(drop=True),
+                               y.reset_index(drop=True)], axis=1)
 
-            xy['pred_proba'] = chosen_model.predict_proba(X[features])[:,1]
-            xy['pred'] = xy['pred_proba']>=umbral
-            q_labels = ['quantile_25','quantile_50','quantile_75','quantile_100']
-            xy['pred_q'] =  pd.cut(xy['pred'],[0,0.25,0.5,0.75,1],q_labels)
+            xy['pred_proba'] = chosen_model.predict_proba(X[features])[:, 1]
+            xy['pred'] = xy['pred_proba'] >= umbral
+            q_labels = ['quantile_25', 'quantile_50',
+                        'quantile_75', 'quantile_100']
+            xy['pred_q'] = pd.cut(
+                xy['pred'], [0, 0.25, 0.5, 0.75, 1], q_labels)
 
-            xy['true_positive'] = np.where((xy[target]==1)&(xy['pred']==1),1,0)
-            xy['false_positive'] = np.where((xy[target]==0)&(xy['pred']==1),1,0)
-            xy['true_negative'] = np.where((xy[target]==0)&(xy['pred']==0),1,0)
-            xy['false_negative'] = np.where((xy[target]==1)&(xy['pred']==0),1,0)
+            xy['true_positive'] = np.where(
+                (xy[target] == 1) & (xy['pred'] == 1), 1, 0)
+            xy['false_positive'] = np.where(
+                (xy[target] == 0) & (xy['pred'] == 1), 1, 0)
+            xy['true_negative'] = np.where(
+                (xy[target] == 0) & (xy['pred'] == 0), 1, 0)
+            xy['false_negative'] = np.where(
+                (xy[target] == 1) & (xy['pred'] == 0), 1, 0)
 
-            xy['pred_q'] =  pd.cut(xy['pred_proba'],[0,0.25,0.5,0.75,1])
+            xy['pred_q'] = pd.cut(xy['pred_proba'], [0, 0.25, 0.5, 0.75, 1])
             q_labels = ['pred_q_'+str(c) for c in list(xy['pred_q'].unique())]
-            xy = pd.get_dummies(xy,columns=['pred_q'])
-
+            xy = pd.get_dummies(xy, columns=['pred_q'])
 
             #cols_pred = ["true_positive","false_positive","true_negative","false_negative"]
             cols_pred = []
@@ -971,42 +976,46 @@ def model_shap_analysis(features,
             dict_local_shap_rows_qlabels = {}
             for c in cols_pred:
                 if show_plot:
-                    print("### ",c)
+                    print("### ", c)
                     print()
 
                 # Esto es en caso de que el sample_size sea mayor al numero de observaciones
-                if sample_size>sum(xy[c]==1):
-                    sample_size_arg = sum(xy[c]==1)
+                if sample_size > sum(xy[c] == 1):
+                    sample_size_arg = sum(xy[c] == 1)
                 else:
                     sample_size_arg = sample_size
 
-                ## Se va a verificar si se tomara una muestra de todos los rows que califiquen o de rows especificos de la variable specific_rows_local_shap_iloc
-                if len(specific_rows_local_shap_iloc)==0:
-                    d = xy[xy[c]==1].sample(sample_size_arg,replace=False)
+                # Se va a verificar si se tomara una muestra de todos los rows que califiquen o de rows especificos de la variable specific_rows_local_shap_iloc
+                if len(specific_rows_local_shap_iloc) == 0:
+                    d = xy[xy[c] == 1].sample(sample_size_arg, replace=False)
                     idx_rows = list(d.index)
-                    idx_rows_nums = [i for i,name in enumerate(list(d.index))]
-                else: 
-                    xy_specific = xy.iloc[specific_rows_local_shap_iloc][xy[c]==1]
-                    if len(xy_specific)>0:
+                    idx_rows_nums = [i for i, name in enumerate(list(d.index))]
+                else:
+                    xy_specific = xy.iloc[specific_rows_local_shap_iloc][xy[c] == 1]
+                    if len(xy_specific) > 0:
                         d = xy_specific
                         idx_rows = list(d.index)
-                        idx_rows_nums = [i for i,name in enumerate(list(d.index))]
+                        idx_rows_nums = [
+                            i for i, name in enumerate(list(d.index))]
                     else:
                         idx_rows = []
                         idx_rows_nums = []
 
                 for i in idx_rows_nums:
                     if show_plot:
-                        print(f'=== {c} | Registro #: ',idx_rows[i])
+                        print(f'=== {c} | Registro #: ', idx_rows[i])
 
-                    #return i,X,tree_shap_obj,X_ratio_info,features,shap_values
+                    # return i,X,tree_shap_obj,X_ratio_info,features,shap_values
 
-                    series_result_shap_local = get_shap_local(i,idx_rows[i],X,tree_shap_obj,X_ratio_info,features,shap_values)
+                    series_result_shap_local = get_shap_local(
+                        i, idx_rows[i], X, tree_shap_obj, X_ratio_info, features, shap_values)
 
                     if c in q_labels:
-                        dict_local_shap_rows_qlabels[idx_rows[i]] = [series_result_shap_local,X_ratio_info,c]
+                        dict_local_shap_rows_qlabels[idx_rows[i]] = [
+                            series_result_shap_local, X_ratio_info, c]
                     else:
-                        dict_local_shap_rows[idx_rows[i]] = [series_result_shap_local,X_ratio_info,c]
+                        dict_local_shap_rows[idx_rows[i]] = [
+                            series_result_shap_local, X_ratio_info, c]
 
     else:
         if show_global_explainer:
@@ -1015,53 +1024,50 @@ def model_shap_analysis(features,
 
         if show_partial_dependence_plot:
             print('\n======== show_partial_dependence_plot')
-            ## Creamos un diccionario para ordenar todo
+            # Creamos un diccionario para ordenar todo
             dicc_order_feat = {}
-            for i,v in enumerate(shap_values.values[1]):
-                #print(list(X.columns)[i],i)
+            for i, v in enumerate(shap_values.values[1]):
+                # print(list(X.columns)[i],i)
                 dicc_order_feat[list(X.columns)[i]] = i
 
-            ## Ordenamos por importancia
+            # Ordenamos por importancia
             importances = chosen_model.feature_importances_
             sorted_indices = np.argsort(importances)[::-1]
             cant_features_show = 50
             feats_ordered = X.columns[sorted_indices[:cant_features_show]]
 
-            ## Ploteamos
+            # Ploteamos
             cols_non_corr = []
             linealidad_dicc = {}
-            for i,f in enumerate(feats_ordered):
+            for i, f in enumerate(feats_ordered):
 
                 df_shap_corr = pd.DataFrame()
-                df_shap_corr['shap_values'] = shap_values.values[:,dicc_order_feat[f]]
-                df_shap_corr['shap_data'] = shap_values.data[:,dicc_order_feat[f]]
+                df_shap_corr['shap_values'] = shap_values.values[:,
+                                                                 dicc_order_feat[f]]
+                df_shap_corr['shap_data'] = shap_values.data[:,
+                                                             dicc_order_feat[f]]
 
-                if (len(df_shap_corr.corr().stack())>0) & (df_shap_corr.shap_values.nunique()>1):
-                    linealidad = df_shap_corr.corr().iloc[:,0].fillna(0)[df_shap_corr.corr().iloc[:,0].fillna(0)<1].values[0]
+                if (len(df_shap_corr.corr().stack()) > 0) & (df_shap_corr.shap_values.nunique() > 1):
+                    linealidad = df_shap_corr.corr().iloc[:, 0].fillna(
+                        0)[df_shap_corr.corr().iloc[:, 0].fillna(0) < 1].values[0]
                 else:
                     linealidad = 0
 
-                print(f,linealidad)
-                shap.plots.scatter(shap_values[:,dicc_order_feat[f]])
+                print(f, linealidad)
+                shap.plots.scatter(shap_values[:, dicc_order_feat[f]])
                 plt.show()
 
-                if linealidad>0:
+                if linealidad > 0:
                     linealidad_dicc[f] = 1
                 else:
                     linealidad_dicc[f] = -1
 
-                if np.abs(linealidad)<0.65:
+                if np.abs(linealidad) < 0.65:
                     cols_non_corr.append(f)
 
         tree_shap_obj = ""
 
-    return shap_values,X,y,tree_shap_obj,dict_local_shap_rows,dict_local_shap_rows_qlabels
-
-
-
-
-
-
+    return shap_values, X, y, tree_shap_obj, dict_local_shap_rows, dict_local_shap_rows_qlabels
 
 
 def model_feature_importance_by_perm(
@@ -1100,7 +1106,8 @@ def model_feature_importance_by_perm(
             )
             clf.fit(X_train_func, y_train_func)
             score = (
-                roc_auc_score(y_test_func, clf.predict_proba(X_test_func)[:, 1])
+                roc_auc_score(
+                    y_test_func, clf.predict_proba(X_test_func)[:, 1])
                 * 2
                 - 1
             )
@@ -1128,7 +1135,8 @@ def model_feature_importance_by_perm(
             )
             clf.fit(X_train_func, y_train_func)
             without_col_score = (
-                roc_auc_score(y_test_func, clf.predict_proba(X_test_func)[:, 1])
+                roc_auc_score(
+                    y_test_func, clf.predict_proba(X_test_func)[:, 1])
                 * 2
                 - 1
             )
@@ -1143,262 +1151,259 @@ def model_feature_importance_by_perm(
 
 
 def model_diagnostic(X_train,
-                    y_train,
-                    X_test,
-                    y_test,
-                    target,
-                    dir_results_files,
-                    dir_models,
-                    model_id,
-                    model_id2,
-                    umbral_elegido,
-                    umbral_elegido2,
-                    limit_imp,
-                    model_name,
-                    model_name2,
-                    data_for_comparison,
-                    porcentaje_df_sample=0.7,
-                    existing_shap_values=None,
-                    existing_df_shap_values=None,
-                    existing_shap_values_df_compare=None,
-                    existing_df_shap_values_df_compare=None,
-                    truncate_out = 1,
-                    skew_validation_out_shap = 0,
-                    use_normal_shap=0,
-                    sample_size_local_shap = 5,
-                    specific_rows_local_shap = [],
-                    return_model_metrics=1,
-                    return_feature_importance_gini=1,
-                    return_model_calibration_curve=1,
-                    return_compare_data_dist=1,
-                    return_performance_by_segment=0,
-                    return_profiling_false_negatives=0,
-                    return_shap=0,
-                    return_shap_df_compare=0,
-                    return_feature_importance_by_perm=0,
-                    ):
-    
-    
+                     y_train,
+                     X_test,
+                     y_test,
+                     target,
+                     dir_results_files,
+                     dir_models,
+                     model_id,
+                     model_id2,
+                     umbral_elegido,
+                     umbral_elegido2,
+                     limit_imp,
+                     model_name,
+                     model_name2,
+                     data_for_comparison,
+                     porcentaje_df_sample=0.7,
+                     existing_shap_values=None,
+                     existing_df_shap_values=None,
+                     existing_shap_values_df_compare=None,
+                     existing_df_shap_values_df_compare=None,
+                     truncate_out=1,
+                     skew_validation_out_shap=0,
+                     use_normal_shap=0,
+                     sample_size_local_shap=5,
+                     specific_rows_local_shap=[],
+                     return_model_metrics=1,
+                     return_feature_importance_gini=1,
+                     return_model_calibration_curve=1,
+                     return_compare_data_dist=1,
+                     return_performance_by_segment=0,
+                     return_profiling_false_negatives=0,
+                     return_shap=0,
+                     return_shap_df_compare=0,
+                     return_feature_importance_by_perm=0,
+                     ):
     """
     Get a diagnostic of the model, how was trained and how is perfoming.
     Args:
         X_train: Data the model used for the training phase
-        
+
         y_train: Target data the model used for the training phase
-        
+
         X_test: Data the model used for the test phase
-        
+
         y_test: Target data the model used for the test phase
-        
+
         dir_results_files: Directory from the tracking models package 
         where the metrics, stats and other files are stored.
-        
+
         dir_models: Directory from the tracking models package 
         where the models are stored.
-        
+
         model_id: Model id you want to diagnose
-        
+
         model_id2: Model id you want to compare
-        
+
         umbral_elegido: Chosen threshold for making the predictions
-        
+
         limit_imp: Qty of features youn want to see on the 
         feature importance section 
-        
+
         model_name: Name how you identify the model (Can be anything) 
-        
+
         model_name2: Name how you identify the 2nd model (Can be anything) 
-        
+
         data_for_comparison: Data you want to use for comparing with
         the training data distribution 
-        
+
         return_model_metrics: If you want to show the model metrics
-        
+
         return_feature_importance_gini: If you want to show the 
         feature importance using gini method
-        
+
         return_compare_data_dist: If you want to show features distribution
         compared with other data
-        
+
         return_performance_by_segment: If you want to show the model
         performance by segment
-        
+
         return_profiling_false_negatives: If you want to show 
         the model metrics false negatives profiling
-        
+
         return_shap: If you want to show the model shap analysis
-        
+
         return_feature_importance_permutation: If you want to show the 
         model feature importance by permutation
-        
+
 
     Returns:
         Dictionary with the most important insights
     """
-    
-    if isinstance(y_test,pd.Series):
+
+    if isinstance(y_test, pd.Series):
         y_test = y_test.to_frame()
 
-    if isinstance(y_train,pd.Series):
+    if isinstance(y_train, pd.Series):
         y_train = y_train.to_frame()
 
-    
-    ### LOAD DEL MODELO
+    # LOAD DEL MODELO
     # Si ya existe no volveremos a intanciar y cargar el modelo y demas datos
     if 'model_results' not in locals():
         # Instanciamos la clase
         model_results = track_model_utils.ClassModelResults()
         df_results = model_results.get_model_results(dir_results_files)
 
-        # Escogemos el modelo 
-        dict_results = track_model_utils.load_model(model_id,dir_models)
+        # Escogemos el modelo
+        dict_results = track_model_utils.load_model(model_id, dir_models)
         chosen_model = dict_results["chosen_model"]
 
-        dict_results = track_model_utils.load_model(model_id2,dir_models)
+        dict_results = track_model_utils.load_model(model_id2, dir_models)
         chosen_model2 = dict_results["chosen_model"]
 
         # Features del modelo (No tomar el ultimo valor)
-        features = list(df_results['features_train_cols'].set_index('Model').loc[model_id].dropna().values)[:-1]
-        target = list(df_results['features_train_cols'].set_index('Model').loc[model_id].dropna().values)[-1]
+        features = list(df_results['features_train_cols'].set_index(
+            'Model').loc[model_id].dropna().values)[:-1]
+        target = list(df_results['features_train_cols'].set_index(
+            'Model').loc[model_id].dropna().values)[-1]
 
         # Features del modelo 2 (No tomar el ultimo valor)
-        features2 = list(df_results['features_train_cols'].set_index('Model').loc[model_id2].dropna().values)[:-1]
-        target2 = list(df_results['features_train_cols'].set_index('Model').loc[model_id2].dropna().values)[-1]
-        
+        features2 = list(df_results['features_train_cols'].set_index(
+            'Model').loc[model_id2].dropna().values)[:-1]
+        target2 = list(df_results['features_train_cols'].set_index(
+            'Model').loc[model_id2].dropna().values)[-1]
+
     dicc_return = {}
-    
+
     if return_model_metrics:
         print('\n===== Mostrando Las metricas del modelo\n')
-        model_metrics(df_results,X_test,y_test,features,chosen_model,features2,chosen_model2,target,model_id,model_id2,model_name,model_name2,umbral_elegido,umbral_elegido2)
-    
+        model_metrics(df_results, X_test, y_test, features, chosen_model, features2, chosen_model2,
+                      target, model_id, model_id2, model_name, model_name2, umbral_elegido, umbral_elegido2)
+
     if return_feature_importance_gini:
         print('\n===== Mostrando el feature importance by gini\n')
         model_feature_importance_gini_index(features,
-                                                chosen_model,
-                                                features2,
-                                                chosen_model2,
-                                                model_name,
-                                                model_name2,
-                                               limit_imp)   
-        
-        
+                                            chosen_model,
+                                            features2,
+                                            chosen_model2,
+                                            model_name,
+                                            model_name2,
+                                            limit_imp)
+
     if return_model_calibration_curve:
         print('\n===== Mostrando la calibracion del modelo\n')
-        for n in range(1,3):
-            if n==1:
-                n=''
+        for n in range(1, 3):
+            if n == 1:
+                n = ''
             chosen_model_n = locals()[f'chosen_model{n}']
             features_n = locals()[f'features{n}']
             model_name_n = locals()[f'model_name{n}']
-            model_calibration_curve(X_test,y_test,features_n,chosen_model_n,model_name_n)
-            
-            
+            model_calibration_curve(
+                X_test, y_test, features_n, chosen_model_n, model_name_n)
+
     if return_compare_data_dist:
         print('\n===== Comparando la distribucion de los features\n')
         model_compare_data_dist(
-                            features,
-                            X_train,
-                            data_for_comparison)
-        
+            features,
+            X_train,
+            data_for_comparison)
+
     if return_performance_by_segment:
         print('\n===== Mostrando el performance del modelo por segmento\n')
-        df_features,dfs = model_performance_by_segment(features,
-                                         X_train,
-                                         y_train,
-                                         X_test,
-                                         y_test,
-                                         chosen_model,
-                                         chosen_model2,
-                                         model_name,
-                                         model_name2,
-                                         features2,
-                                         target)
-        
+        df_features, dfs = model_performance_by_segment(features,
+                                                        X_train,
+                                                        y_train,
+                                                        X_test,
+                                                        y_test,
+                                                        chosen_model,
+                                                        chosen_model2,
+                                                        model_name,
+                                                        model_name2,
+                                                        features2,
+                                                        target)
+
         dicc_return['df_features'] = df_features
         dicc_return['dfs_perf_segment'] = dfs
-        
-        
 
-    
     if return_profiling_false_negatives:
         print('\n===== Mostrando el profiling de los falsos negativos\n')
-        tab_final,df_positives,df_diff_dist_gr,df_gr_false_negatives = model_profiling_false_negatives(features,
-                     X_train,
-                     y_train,
-                     X_test,
-                     y_test,
-                     chosen_model,
-                     umbral_elegido,
-                     target
-                   )
-        
+        tab_final, df_positives, df_diff_dist_gr, df_gr_false_negatives = model_profiling_false_negatives(features,
+                                                                                                          X_train,
+                                                                                                          y_train,
+                                                                                                          X_test,
+                                                                                                          y_test,
+                                                                                                          chosen_model,
+                                                                                                          umbral_elegido,
+                                                                                                          target
+                                                                                                          )
+
         dicc_return['df_diff_dist_gr'] = df_diff_dist_gr
         dicc_return['tab_final'] = tab_final
         dicc_return['df_positives'] = df_positives
         dicc_return['df_gr_false_negatives'] = df_gr_false_negatives
-        
+
     if return_shap:
-        shap_values,X,y,tree_shap_obj,dict_local_shap_rows,dict_local_shap_rows_qlabels = model_shap_analysis(features,
-                         X_train,
-                         y_train,
-                         X_test,
-                         y_test,
-                         chosen_model,
-                         target,
-                        umbral = umbral_elegido,
-                        porcentaje_df_sample = porcentaje_df_sample,
-            existing_shap_values = existing_shap_values,
-            existing_df_shap_values = existing_df_shap_values,
-            show_global_explainer = 1,
-            show_partial_dependence_plot = 1,
-            truncate_out = truncate_out,
-            skew_validation_out=skew_validation_out_shap,
-            use_normal_shap=use_normal_shap,
-            sample_size = sample_size_local_shap,
-            specific_rows_local_shap = specific_rows_local_shap,
-                       )
-        
+        shap_values, X, y, tree_shap_obj, dict_local_shap_rows, dict_local_shap_rows_qlabels = model_shap_analysis(features,
+                                                                                                                   X_train,
+                                                                                                                   y_train,
+                                                                                                                   X_test,
+                                                                                                                   y_test,
+                                                                                                                   chosen_model,
+                                                                                                                   target,
+                                                                                                                   umbral=umbral_elegido,
+                                                                                                                   porcentaje_df_sample=porcentaje_df_sample,
+                                                                                                                   existing_shap_values=existing_shap_values,
+                                                                                                                   existing_df_shap_values=existing_df_shap_values,
+                                                                                                                   show_global_explainer=1,
+                                                                                                                   show_partial_dependence_plot=1,
+                                                                                                                   truncate_out=truncate_out,
+                                                                                                                   skew_validation_out=skew_validation_out_shap,
+                                                                                                                   use_normal_shap=use_normal_shap,
+                                                                                                                   sample_size=sample_size_local_shap,
+                                                                                                                   specific_rows_local_shap=specific_rows_local_shap,
+                                                                                                                   )
+
         dicc_return['shap_values'] = shap_values
         dicc_return['shap_values_df'] = X
         dicc_return['shap_values_df_y'] = y
         dicc_return['tree_shap_obj'] = tree_shap_obj
-        
+
     if return_shap_df_compare:
-        shap_values_compare,X_compare,y_compare,tree_shap_obj_compare = model_shap_analysis(features,
-                         data_for_comparison,
-                         pd.DataFrame(),
-                         pd.DataFrame(),
-                         pd.DataFrame(),
-                         chosen_model,
-                         target,
-                        umbral = umbral_elegido,
-                        porcentaje_df_sample = porcentaje_df_sample,
-        existing_shap_values = existing_shap_values_df_compare,
-        existing_df_shap_values = existing_df_shap_values_df_compare,
-            show_global_explainer = 1,
-            show_partial_dependence_plot = 1,
-            truncate_out = truncate_out,
-            skew_validation_out=skew_validation_out_shap,
-            use_normal_shap=use_normal_shap,
-            sample_size = sample_size_local_shap
-                       )
-        
+        shap_values_compare, X_compare, y_compare, tree_shap_obj_compare = model_shap_analysis(features,
+                                                                                               data_for_comparison,
+                                                                                               pd.DataFrame(),
+                                                                                               pd.DataFrame(),
+                                                                                               pd.DataFrame(),
+                                                                                               chosen_model,
+                                                                                               target,
+                                                                                               umbral=umbral_elegido,
+                                                                                               porcentaje_df_sample=porcentaje_df_sample,
+                                                                                               existing_shap_values=existing_shap_values_df_compare,
+                                                                                               existing_df_shap_values=existing_df_shap_values_df_compare,
+                                                                                               show_global_explainer=1,
+                                                                                               show_partial_dependence_plot=1,
+                                                                                               truncate_out=truncate_out,
+                                                                                               skew_validation_out=skew_validation_out_shap,
+                                                                                               use_normal_shap=use_normal_shap,
+                                                                                               sample_size=sample_size_local_shap
+                                                                                               )
+
         dicc_return['shap_values_compare'] = shap_values_compare
         dicc_return['shap_values_df_compare'] = X_compare
         dicc_return['shap_values_df_y_compare'] = y_compare
         dicc_return['tree_shap_obj_compare'] = tree_shap_obj_compare
-        
-        
+
     if return_feature_importance_by_perm:
-        df_scores_perm= model_feature_importance_by_perm(features,
-                         X_train,
-                         y_train,
-                         X_test,
-                         y_test,
-                         iterations =5,
-                         perc_draw = 1
-                         )
-        
+        df_scores_perm = model_feature_importance_by_perm(features,
+                                                          X_train,
+                                                          y_train,
+                                                          X_test,
+                                                          y_test,
+                                                          iterations=5,
+                                                          perc_draw=1
+                                                          )
+
         dicc_return['df_scores_perm'] = df_scores_perm
-        
+
     return dicc_return
